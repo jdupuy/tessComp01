@@ -50,6 +50,8 @@ enum // OpenGLNames
 
 	// programs
 	PROGRAM_RENDER_MD2 = 0,
+	PROGRAM_RENDER_TESS_PN,
+	PROGRAM_RENDER_TESS_PHONG,
 	PROGRAM_COUNT
 };
 
@@ -202,10 +204,19 @@ void on_init()
 	                       "md2.glsl",
 	                       "",
 	                       GL_TRUE);
+	fw::build_glsl_program(programs[PROGRAM_RENDER_TESS_PN],
+	                       "pnTriangles.glsl",
+	                       "",
+	                       GL_TRUE);
+	fw::build_glsl_program(programs[PROGRAM_RENDER_TESS_PHONG],
+	                       "phongTess.glsl",
+	                       "",
+	                       GL_TRUE);
 	glProgramUniform1i( programs[PROGRAM_RENDER_MD2], 
 	                    glGetUniformLocation( programs[PROGRAM_RENDER_MD2], 
 	                                          "sSkin"),
 	                    TEXTURE_SKIN_MD2 );
+
 
 	glEnable(GL_DEPTH_TEST);
 	glEnable(GL_CULL_FACE);
