@@ -1,5 +1,11 @@
 #version 420 core
 
+uniform sampler2D sSkin;
+
+uniform mat4 uModelViewProjection;
+uniform float uTessLevels;
+uniform float uAlpha;
+
 #ifdef _VERTEX_
 layout(location = 0) in vec3 iPosition;
 layout(location = 1) in vec3 iNormal;
@@ -21,8 +27,6 @@ void main()
 #ifdef _TESS_CONTROL_
 
 layout(vertices=3) out;
-
-uniform vec2 glu_TessLevels;
 
 layout(location = 0) in vec3 iPosition[];
 layout(location = 1) in vec3 iNormal[];
@@ -90,16 +94,14 @@ void main()
 	oN101[gl_InvocationID] = N2+N0-vij(2,0)*(P0-P2);
 
 	// set tess levels
-	gl_TessLevelOuter[gl_InvocationID] = glu_TessLevels.y;
-	gl_TessLevelInner[0] = glu_TessLevels.x;
+	gl_TessLevelOuter[gl_InvocationID] = uTessLevels;
+	gl_TessLevelInner[0] = uTessLevels;
 }
 
 #endif // _TESS_CONTROL_
 
 #ifdef _TESS_EVALUATION_
 layout(triangles, fractional_odd_spacing, ccw) in;
-
-uniform mat4 glu_ModelViewProjection;
 
 layout(location = 0) in vec3 iPosition[];
 layout(location = 3) in vec3 iNormal[];
@@ -125,10 +127,10 @@ layout(location = 1) out vec2 oTexCoord;
 #define n200    iNormal[0]
 #define n020    iNormal[1]
 #define n002    iNormal[2]
+#define uvw     gl_TessCoord
 
 void main()
 {
-	vec3 uvw        = gl_TessCoord;
 	vec3 uvwSquared = uvw*uvw;
 	vec3 uvwCubed   = uvwSquared*uvw;
 
@@ -156,44 +158,47 @@ void main()
 	           + n011*uvw[0]*uvw[1]
 	           + n101*uvw[2]*uvw[1];
 
+
+	// compute interpolated pos
+	vec3 barPos = gl_TessCoord[0]*b300
+	            + gl_TessCoord[1]*b030
+	            + gl_TessCoord[2]*b003;
+
 	// save some computations
 	uvwSquared *= 3.0;
 
-	// compute final position
-	vec3 pos  = b300*uvwCubed[2]
-	          + b030*uvwCubed[0]
-	          + b003*uvwCubed[1]
-	          + b210*uvwSquared[2]*uvw[0]
-	          + b120*uvwSquared[0]*uvw[2]
-	          + b201*uvwSquared[2]*uvw[1]
-	          + b021*uvwSquared[0]*uvw[1]
-	          + b102*uvwSquared[1]*uvw[2]
-	          + b012*uvwSquared[1]*uvw[0]
-	          + b111*6.0*uvw[0]*uvw[1]*uvw[2];
+	// compute PN position
+	vec3 pnPos  = b300*uvwCubed[2]
+	            + b030*uvwCubed[0]
+	            + b003*uvwCubed[1]
+	            + b210*uvwSquared[2]*uvw[0]
+	            + b120*uvwSquared[0]*uvw[2]
+	            + b201*uvwSquared[2]*uvw[1]
+	            + b021*uvwSquared[0]*uvw[1]
+	            + b102*uvwSquared[1]*uvw[2]
+	            + b012*uvwSquared[1]*uvw[0]
+	            + b111*6.0*uvw[0]*uvw[1]*uvw[2];
 
-//    pos = gl_TessCoord[0]*b300 + gl_TessCoord[1]*b030 + gl_TessCoord[2]*b003;
-
-	gl_Position = glu_ModelViewProjection * vec4(pos,1.0);
+	// final position
+	vec3 finalPos = (1.0-uAlpha)*barPos + uAlpha*pnPos;
+	gl_Position   = uModelViewProjection * vec4(finalPos,1.0);
 }
-
 
 #endif // _TESS_EVAL_
 
 #ifdef _FRAGMENT_
 
-uniform sampler2D gls_Diffuse;
-
 layout(location = 0) in vec3 iNormal;
 layout(location = 1) in vec2 iTexCoord;
 
-layout(location = 0) out vec4 color;
+layout(location = 0) out vec4 oColor;
 
 void main()
 {
 	vec3 N = normalize(iNormal);
 	vec3 L = normalize(vec3(1.0,1.0,1.0));
-	color = max(dot(N, L), 0.0)*texture(gls_Diffuse, iTexCoord.st);
-//    color.rgb = abs(N);
+	oColor = max(dot(N, L), 0.0)*texture(sSkin, iTexCoord.st);
+	oColor.rgb = abs(N);
 }
 
 #endif // _FRAGMENT_

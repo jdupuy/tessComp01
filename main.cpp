@@ -50,8 +50,8 @@ enum // OpenGLNames
 
 	// programs
 	PROGRAM_RENDER_MD2 = 0,
-	PROGRAM_RENDER_TESS_PN,
-	PROGRAM_RENDER_TESS_PHONG,
+	PROGRAM_TESS_PN,
+	PROGRAM_TESS_PHONG,
 	PROGRAM_COUNT
 };
 
@@ -69,10 +69,12 @@ Affine model          = Affine::Translation(Vector3(0,0,-400));
 Projection projection = Projection::Perspective(50.0f, 1.0f, 10.0f, 4000.0f);
 bool mouseLeft  = false;
 bool mouseRight = false;
+float tessLevel = 1.0f; // level of tessellation
+float tessAlpha = 1.0f; // level of tessellation
 
 #ifdef _ANT_ENABLE
 std::string activeAnimation;  // active animation name
-double streamingTime   = 0.0; // streaming time, in ms
+//double streamingTime   = 0.0; // streaming time, in ms
 double framesPerSecond = 0.0; // fps
 #endif
 
@@ -82,7 +84,45 @@ double framesPerSecond = 0.0; // fps
 ////////////////////////////////////////////////////////////////////////////////
 
 
+void set_tess_levels()
+{
+	glProgramUniform1f(programs[PROGRAM_TESS_PN],
+	                   glGetUniformLocation( programs[PROGRAM_TESS_PN],
+	                                         "uTessLevels"),
+	                   tessLevel);
+
+	glProgramUniform1f(programs[PROGRAM_TESS_PHONG],
+	                   glGetUniformLocation(programs[PROGRAM_TESS_PHONG],
+	                                        "uTessLevels"),
+	                   tessLevel);
+}
+
+void set_alpha()
+{
+	glProgramUniform1f(programs[PROGRAM_TESS_PN],
+	                   glGetUniformLocation( programs[PROGRAM_TESS_PN],
+	                                         "uAlpha"),
+	                   tessAlpha);
+
+	glProgramUniform1f(programs[PROGRAM_TESS_PHONG],
+	                   glGetUniformLocation(programs[PROGRAM_TESS_PHONG],
+	                                        "uAlpha"),
+	                   tessAlpha);
+}
+
 #ifdef _ANT_ENABLE
+
+static void TW_CALL tess_level_set_cb(const void *value, void *clientData)
+{
+	tessLevel = *(const float *)value;
+	set_tess_levels();
+}
+
+static void TW_CALL tess_level_get_cb(void *value, void *clientData)
+{
+	*(float *)value = tessLevel;
+}
+
 static void TW_CALL play_next_animation(void *data)
 {
 	md2->NextAnimation();
@@ -204,23 +244,33 @@ void on_init()
 	                       "md2.glsl",
 	                       "",
 	                       GL_TRUE);
-	fw::build_glsl_program(programs[PROGRAM_RENDER_TESS_PN],
+	fw::build_glsl_program(programs[PROGRAM_TESS_PN],
 	                       "pnTriangles.glsl",
 	                       "",
 	                       GL_TRUE);
-	fw::build_glsl_program(programs[PROGRAM_RENDER_TESS_PHONG],
+	fw::build_glsl_program(programs[PROGRAM_TESS_PHONG],
 	                       "phongTess.glsl",
 	                       "",
 	                       GL_TRUE);
-	glProgramUniform1i( programs[PROGRAM_RENDER_MD2], 
-	                    glGetUniformLocation( programs[PROGRAM_RENDER_MD2], 
+	glProgramUniform1i( programs[PROGRAM_RENDER_MD2],
+	                    glGetUniformLocation( programs[PROGRAM_RENDER_MD2],
 	                                          "sSkin"),
 	                    TEXTURE_SKIN_MD2 );
-
+	glProgramUniform1i( programs[PROGRAM_TESS_PN],
+	                    glGetUniformLocation( programs[PROGRAM_TESS_PN],
+	                                          "sSkin"),
+	                    TEXTURE_SKIN_MD2 );
+	glProgramUniform1i( programs[PROGRAM_TESS_PHONG],
+	                    glGetUniformLocation( programs[PROGRAM_TESS_PHONG],
+	                                          "sSkin"),
+	                    TEXTURE_SKIN_MD2 );
+	set_tess_levels();
+	set_alpha();
 
 	glEnable(GL_DEPTH_TEST);
 	glEnable(GL_CULL_FACE);
 	glClearColor(0.13,0.13,0.15,1.0);
+	glPatchParameteri(GL_PATCH_VERTICES, 3);
 
 #ifdef _ANT_ENABLE
 	// start ant
@@ -230,32 +280,42 @@ void on_init()
 
 	// Create a new bar
 	TwBar* menuBar = TwNewBar("menu");
-	TwDefine("menu size='250 150'");
+	TwDefine("menu size='250 250'");
 	TwAddButton( menuBar,
 	             "fullscreen",
 	             &toggle_fullscreen,
 	             NULL,
-	             "label='toggle fullscreen'");
+	             "label='toggle fullscreen'" );
 	TwAddButton( menuBar,
 	             "nextAnim",
 	             &play_next_animation,
 	             NULL,
-	             "label='next animation'");
+	             "label='next animation'" );
 	TwAddButton( menuBar,
 	             "playPause",
 	             &play_pause,
 	             NULL,
-	             "label='play/pause animation'");
-	TwAddVarRO( menuBar,
-	            "speed",
-	            TW_TYPE_DOUBLE,
-	            &streamingTime,
-	            "label='streaming speed (ms)'");
+	             "label='play/pause animation'" );
+//	TwAddVarRO( menuBar,
+//	            "speed",
+//	            TW_TYPE_DOUBLE,
+//	            &streamingTime,
+//	            "label='streaming speed (ms)'" );
 	TwAddVarRO( menuBar,
 	            "fps",
 	            TW_TYPE_DOUBLE,
 	            &framesPerSecond,
-	            "label='frames per second'");
+	            "label='frames per second'" );
+	TwAddSeparator( menuBar,
+	                "tessOptions",
+	                NULL );
+	TwAddVarCB( menuBar,
+	            "tessLevel",
+	            TW_TYPE_FLOAT,
+	            &tess_level_set_cb,
+	            &tess_level_get_cb,
+	            &tessLevel,
+	            "min=0.1 max='64.0' step='0.1' label='tessellation level'" );
 #endif // _ANT_ENABLE
 
 	fw::check_gl_error();
@@ -311,9 +371,9 @@ void on_update()
 	md2->Update(deltaTimer.Ticks());
 
 #ifdef _ANT_ENABLE
-	// Bench stream
-	fw::Timer streamTimer;
-	streamTimer.Start();
+//	// Bench stream
+//	fw::Timer streamTimer;
+//	streamTimer.Start();
 	// Compute fps
 	framesPerSecond = 1.0/deltaTimer.Ticks();
 #endif // _ANT_ENABLE
@@ -374,14 +434,14 @@ void on_update()
 		streamOffset += streamDataSize;
 	}
 
-#ifdef _ANT_ENABLE
-	// End bench
-	streamTimer.Stop();
-	streamingTime = streamTimer.Ticks()*1000.0; // convert to milliseconds
-#endif // _ANT_ENABLE
+//#ifdef _ANT_ENABLE
+//	// End bench
+//	streamTimer.Stop();
+//	streamingTime = streamTimer.Ticks()*1000.0; // convert to milliseconds
+//#endif // _ANT_ENABLE
 
 	// update transformations
-	projection.FitHeightToAspect(float(windowWidth)/float(windowHeight));
+	projection.FitHeightToAspect(float(windowWidth/2)/float(windowHeight));
 
 	Matrix4x4 mvp = projection.ExtractTransformMatrix()
 	              * model.ExtractTransformMatrix()
@@ -390,17 +450,29 @@ void on_update()
 	                          1, 0, 0, 0,
 	                          0, 0, 0, 1);
 
-	glProgramUniformMatrix4fv(programs[PROGRAM_RENDER_MD2],
-	                          glGetUniformLocation(programs[PROGRAM_RENDER_MD2],
+	glProgramUniformMatrix4fv(programs[PROGRAM_TESS_PN],
+	                          glGetUniformLocation(programs[PROGRAM_TESS_PN],
+	                                         "uModelViewProjection"),
+	                          1,
+	                          0,
+	                          reinterpret_cast<float*>(&mvp));
+	glProgramUniformMatrix4fv(programs[PROGRAM_TESS_PHONG],
+	                          glGetUniformLocation(programs[PROGRAM_TESS_PHONG],
 	                                         "uModelViewProjection"),
 	                          1,
 	                          0,
 	                          reinterpret_cast<float*>(&mvp));
 
 	// render the model
-	glUseProgram(programs[PROGRAM_RENDER_MD2]);
 	glBindVertexArray(vertexArrays[VERTEX_ARRAY_MD2]);
-	glDrawArrays( GL_TRIANGLES,
+	glUseProgram(programs[PROGRAM_TESS_PN]);
+	glViewport(0,0,windowWidth/2, windowHeight);
+	glDrawArrays( GL_PATCHES,
+	              drawOffset,
+	              md2->TriangleCount()*3);
+	glUseProgram(programs[PROGRAM_TESS_PHONG]);
+	glViewport(windowWidth/2,0,windowWidth/2, windowHeight);
+	glDrawArrays( GL_PATCHES,
 	              drawOffset,
 	              md2->TriangleCount()*3);
 
@@ -448,7 +520,6 @@ void on_key_down(GLubyte key, GLint x, GLint y)
 		                         0,
 		                         glutGet(GLUT_WINDOW_WIDTH),
 		                         glutGet(GLUT_WINDOW_HEIGHT));
-
 }
 
 
