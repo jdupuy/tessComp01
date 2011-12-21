@@ -154,21 +154,21 @@ void main()
 	           + gl_TessCoord[1]*iTexCoord[2];
 
 	// normal
-	vec3 barNormal = gl_TessCoord[0]*iNormal[0]
-	               + gl_TessCoord[1]*iNormal[1]
-	               + gl_TessCoord[2]*iNormal[2];
+	vec3 barNormal = gl_TessCoord[2]*iNormal[0]
+	               + gl_TessCoord[0]*iNormal[1]
+	               + gl_TessCoord[1]*iNormal[2];
 	vec3 pnNormal  = n200*uvwSquared[2]
 	               + n020*uvwSquared[0]
 	               + n002*uvwSquared[1]
 	               + n110*uvw[2]*uvw[0]
 	               + n011*uvw[0]*uvw[1]
 	               + n101*uvw[2]*uvw[1];
-	oNormal = alpha*pnNormal + (1.0-alpha)*barNormal; // should we normalize ?
+	oNormal = uTessAlpha*pnNormal + (1.0-uTessAlpha)*barNormal; // should we normalize ?
 
 	// compute interpolated pos
-	vec3 barPos = gl_TessCoord[0]*b300
-	            + gl_TessCoord[1]*b030
-	            + gl_TessCoord[2]*b003;
+	vec3 barPos = gl_TessCoord[2]*b300
+	            + gl_TessCoord[0]*b030
+	            + gl_TessCoord[1]*b003;
 
 	// save some computations
 	uvwSquared *= 3.0;
@@ -207,7 +207,7 @@ void main()
 	oColor = max(dot(N, L), 0.0)*texture(sSkin, iTexCoord);
 //	oColor.rgb = abs(N);
 #else
-	oColor.rgb = vec3(1.0);
+	oColor.rgb = vec3(0.0,1.0,0.0);
 #endif
 }
 

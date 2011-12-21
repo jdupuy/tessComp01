@@ -4,7 +4,7 @@
 ////////////////////////////////////////////////////////////////////////////////
 
 // enable gui
-#define _ANT_ENABLE
+//#define _ANT_ENABLE
 
 // GL libraries
 #include "glew.hpp"
@@ -70,12 +70,12 @@ Affine model          = Affine::Translation(Vector3(0,0,-200));
 Projection projection = Projection::Perspective(50.0f, 1.0f, 10.0f, 4000.0f);
 bool mouseLeft  = false;
 bool mouseRight = false;
-
-#ifdef _ANT_ENABLE
 float tessLevel = 1.0f; // level of tessellation
 float tessAlpha = 1.0f; // level of tessellation
 bool drawPolyLines = false;
 bool drawPolyFull  = true;
+
+#ifdef _ANT_ENABLE
 std::string activeAnimation;  // active animation name
 //double streamingTime   = 0.0; // streaming time, in ms
 double framesPerSecond = 0.0; // fps
@@ -287,7 +287,7 @@ void on_init()
 
 	// configure programs
 	fw::build_glsl_program(programs[PROGRAM_TESS_PN],
-	                       "phongTess.glsl",
+	                       "pnTriangles.glsl",
 	                       "",
 	                       GL_TRUE);
 	fw::build_glsl_program(programs[PROGRAM_TESS_PHONG],
@@ -295,7 +295,7 @@ void on_init()
 	                       "",
 	                       GL_TRUE);
 	fw::build_glsl_program(programs[PROGRAM_TESS_PN_WIRE],
-	                       "phongTess.glsl",
+	                       "pnTriangles.glsl",
 	                       "#define _WIRE",
 	                       GL_TRUE);
 	fw::build_glsl_program(programs[PROGRAM_TESS_PHONG_WIRE],
@@ -326,7 +326,7 @@ void on_init()
 
 	// Create a new bar
 	TwBar* menuBar = TwNewBar("menu");
-	TwDefine("menu size='250 250'");
+	TwDefine("menu size='200 250'");
 	TwAddButton( menuBar,
 	             "fullscreen",
 	             &toggle_fullscreen,
@@ -351,7 +351,7 @@ void on_init()
 	            "fps",
 	            TW_TYPE_DOUBLE,
 	            &framesPerSecond,
-	            "label='frames per second'" );
+	            "" );
 	TwAddSeparator( menuBar,
 	                "tessOptions",
 	                NULL );
