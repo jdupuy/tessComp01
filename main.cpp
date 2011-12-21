@@ -49,9 +49,10 @@ enum // OpenGLNames
 	TEXTURE_COUNT,
 
 	// programs
-	PROGRAM_RENDER_MD2 = 0,
-	PROGRAM_TESS_PN,
+	PROGRAM_TESS_PN = 0,
 	PROGRAM_TESS_PHONG,
+	PROGRAM_TESS_PN_WIRE,
+	PROGRAM_TESS_PHONG_WIRE,
 	PROGRAM_COUNT
 };
 
@@ -65,14 +66,16 @@ GLuint *programs     = NULL;
 Md2* md2 = NULL; // md2 model and texture
 
 // Tools
-Affine model          = Affine::Translation(Vector3(0,0,-400));
+Affine model          = Affine::Translation(Vector3(0,0,-200));
 Projection projection = Projection::Perspective(50.0f, 1.0f, 10.0f, 4000.0f);
 bool mouseLeft  = false;
 bool mouseRight = false;
-float tessLevel = 1.0f; // level of tessellation
-float tessAlpha = 1.0f; // level of tessellation
 
 #ifdef _ANT_ENABLE
+float tessLevel = 1.0f; // level of tessellation
+float tessAlpha = 1.0f; // level of tessellation
+bool drawPolyLines = false;
+bool drawPolyFull  = true;
 std::string activeAnimation;  // active animation name
 //double streamingTime   = 0.0; // streaming time, in ms
 double framesPerSecond = 0.0; // fps
@@ -95,18 +98,39 @@ void set_tess_levels()
 	                   glGetUniformLocation(programs[PROGRAM_TESS_PHONG],
 	                                        "uTessLevels"),
 	                   tessLevel);
+
+	glProgramUniform1f(programs[PROGRAM_TESS_PN_WIRE],
+	                   glGetUniformLocation( programs[PROGRAM_TESS_PN_WIRE],
+	                                         "uTessLevels"),
+	                   tessLevel);
+
+	glProgramUniform1f(programs[PROGRAM_TESS_PHONG_WIRE],
+	                   glGetUniformLocation(programs[PROGRAM_TESS_PHONG_WIRE],
+	                                        "uTessLevels"),
+	                   tessLevel);
+
 }
 
-void set_alpha()
+void set_tess_alpha()
 {
 	glProgramUniform1f(programs[PROGRAM_TESS_PN],
 	                   glGetUniformLocation( programs[PROGRAM_TESS_PN],
-	                                         "uAlpha"),
+	                                         "uTessAlpha"),
 	                   tessAlpha);
 
 	glProgramUniform1f(programs[PROGRAM_TESS_PHONG],
 	                   glGetUniformLocation(programs[PROGRAM_TESS_PHONG],
-	                                        "uAlpha"),
+	                                        "uTessAlpha"),
+	                   tessAlpha);
+
+	glProgramUniform1f(programs[PROGRAM_TESS_PN_WIRE],
+	                   glGetUniformLocation( programs[PROGRAM_TESS_PN_WIRE],
+	                                         "uTessAlpha"),
+	                   tessAlpha);
+
+	glProgramUniform1f(programs[PROGRAM_TESS_PHONG_WIRE],
+	                   glGetUniformLocation(programs[PROGRAM_TESS_PHONG_WIRE],
+	                                        "uTessAlpha"),
 	                   tessAlpha);
 }
 
@@ -121,6 +145,17 @@ static void TW_CALL tess_level_set_cb(const void *value, void *clientData)
 static void TW_CALL tess_level_get_cb(void *value, void *clientData)
 {
 	*(float *)value = tessLevel;
+}
+
+static void TW_CALL tess_alpha_set_cb(const void *value, void *clientData)
+{
+	tessAlpha = *(const float *)value;
+	set_tess_alpha();
+}
+
+static void TW_CALL tess_alpha_get_cb(void *value, void *clientData)
+{
+	*(float *)value = tessAlpha;
 }
 
 static void TW_CALL play_next_animation(void *data)
@@ -148,6 +183,17 @@ static void TW_CALL play_pause(void* data)
 // on init cb
 void on_init()
 {
+	// tests
+	GLint maxVaryingComponents=0;
+	GLint maxVaryingVectors   =0;
+	GLint maxVaryingFloats    =0;
+	glGetIntegerv(GL_MAX_VARYING_COMPONENTS, &maxVaryingComponents);
+	glGetIntegerv(GL_MAX_VARYING_VECTORS, &maxVaryingVectors);
+	glGetIntegerv(GL_MAX_VARYING_FLOATS, &maxVaryingFloats);
+	std::cout << "GL_MAX_VARYING_COMPONENTS: " << maxVaryingComponents << '\n'
+	          << "GL_MAX_VARYING_VECTORS   : " << maxVaryingVectors << '\n'
+	          << "GL_MAX_VARYING_FLOATS    : " << maxVaryingFloats << '\n';
+
 	// load Md2 model
 	md2 = new Md2("droid.md2");
 
@@ -240,22 +286,22 @@ void on_init()
 	glBindVertexArray(0);
 
 	// configure programs
-	fw::build_glsl_program(programs[PROGRAM_RENDER_MD2],
-	                       "md2.glsl",
-	                       "",
-	                       GL_TRUE);
 	fw::build_glsl_program(programs[PROGRAM_TESS_PN],
-	                       "pnTriangles.glsl",
+	                       "phongTess.glsl",
 	                       "",
 	                       GL_TRUE);
 	fw::build_glsl_program(programs[PROGRAM_TESS_PHONG],
 	                       "phongTess.glsl",
 	                       "",
 	                       GL_TRUE);
-	glProgramUniform1i( programs[PROGRAM_RENDER_MD2],
-	                    glGetUniformLocation( programs[PROGRAM_RENDER_MD2],
-	                                          "sSkin"),
-	                    TEXTURE_SKIN_MD2 );
+	fw::build_glsl_program(programs[PROGRAM_TESS_PN_WIRE],
+	                       "phongTess.glsl",
+	                       "#define _WIRE",
+	                       GL_TRUE);
+	fw::build_glsl_program(programs[PROGRAM_TESS_PHONG_WIRE],
+	                       "phongTess.glsl",
+	                       "#define _WIRE",
+	                       GL_TRUE);
 	glProgramUniform1i( programs[PROGRAM_TESS_PN],
 	                    glGetUniformLocation( programs[PROGRAM_TESS_PN],
 	                                          "sSkin"),
@@ -265,7 +311,7 @@ void on_init()
 	                                          "sSkin"),
 	                    TEXTURE_SKIN_MD2 );
 	set_tess_levels();
-	set_alpha();
+	set_tess_alpha();
 
 	glEnable(GL_DEPTH_TEST);
 	glEnable(GL_CULL_FACE);
@@ -316,6 +362,23 @@ void on_init()
 	            &tess_level_get_cb,
 	            &tessLevel,
 	            "min=0.1 max='64.0' step='0.1' label='tessellation level'" );
+	TwAddVarCB( menuBar,
+	            "tessAlpha",
+	            TW_TYPE_FLOAT,
+	            &tess_alpha_set_cb,
+	            &tess_alpha_get_cb,
+	            &tessAlpha,
+	            "min=0.0 max='1.0' step='0.01' label='tessellation alpha'" );
+	TwAddVarRW( menuBar,
+	            "fill",
+	            TW_TYPE_BOOLCPP,
+	            &drawPolyFull,
+	            "label='fill polygons' true=ON false=OFF");
+	TwAddVarRW( menuBar,
+	            "line",
+	            TW_TYPE_BOOLCPP,
+	            &drawPolyLines,
+	            "label='wireframe' true=ON false=OFF");
 #endif // _ANT_ENABLE
 
 	fw::check_gl_error();
@@ -462,19 +525,50 @@ void on_update()
 	                          1,
 	                          0,
 	                          reinterpret_cast<float*>(&mvp));
-
+	glProgramUniformMatrix4fv(programs[PROGRAM_TESS_PN_WIRE],
+	                          glGetUniformLocation(programs[PROGRAM_TESS_PN_WIRE],
+	                                         "uModelViewProjection"),
+	                          1,
+	                          0,
+	                          reinterpret_cast<float*>(&mvp));
+	glProgramUniformMatrix4fv(programs[PROGRAM_TESS_PHONG_WIRE],
+	                          glGetUniformLocation(programs[PROGRAM_TESS_PHONG_WIRE],
+	                                         "uModelViewProjection"),
+	                          1,
+	                          0,
+	                          reinterpret_cast<float*>(&mvp));
 	// render the model
 	glBindVertexArray(vertexArrays[VERTEX_ARRAY_MD2]);
-	glUseProgram(programs[PROGRAM_TESS_PN]);
-	glViewport(0,0,windowWidth/2, windowHeight);
-	glDrawArrays( GL_PATCHES,
-	              drawOffset,
-	              md2->TriangleCount()*3);
-	glUseProgram(programs[PROGRAM_TESS_PHONG]);
-	glViewport(windowWidth/2,0,windowWidth/2, windowHeight);
-	glDrawArrays( GL_PATCHES,
-	              drawOffset,
-	              md2->TriangleCount()*3);
+	if(drawPolyFull)
+	{
+		glViewport(0,0,windowWidth/2, windowHeight);
+		glUseProgram(programs[PROGRAM_TESS_PN]);
+		glDrawArrays( GL_PATCHES,
+		              drawOffset,
+		              md2->TriangleCount()*3);
+		glViewport(windowWidth/2,0,windowWidth/2, windowHeight);
+		glUseProgram(programs[PROGRAM_TESS_PHONG]);
+		glDrawArrays( GL_PATCHES,
+		              drawOffset,
+		              md2->TriangleCount()*3);
+	}
+	if(drawPolyLines)
+	{
+		glDepthFunc(GL_LEQUAL);
+		glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+		glViewport(0,0,windowWidth/2, windowHeight);
+		glUseProgram(programs[PROGRAM_TESS_PN_WIRE]);
+		glDrawArrays( GL_PATCHES,
+		              drawOffset,
+		              md2->TriangleCount()*3);
+		glViewport(windowWidth/2,0,windowWidth/2, windowHeight);
+		glUseProgram(programs[PROGRAM_TESS_PHONG_WIRE]);
+		glDrawArrays( GL_PATCHES,
+		              drawOffset,
+		              md2->TriangleCount()*3);
+		glDepthFunc(GL_LESS);
+		glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+	}
 
 	// back to default vertex array
 	glBindVertexArray(0);

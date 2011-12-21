@@ -1,5 +1,6 @@
 #version 420 core
 
+// PN patch data
 struct PnPatch
 {
 	float b210[3];
@@ -14,26 +15,27 @@ struct PnPatch
 	float n101[3];
 };
 
+#ifndef _WIRE
 uniform sampler2D sSkin;
+#endif
 
 uniform mat4 uModelViewProjection;
 uniform float uTessLevels;
-uniform float uAlpha;
+uniform float uTessAlpha;
 
 #ifdef _VERTEX_
 layout(location = 0) in vec3 iPosition;
 layout(location = 1) in vec3 iNormal;
 layout(location = 2) in vec2 iTexCoord;
 
-layout(location = 0) out vec3 oPosition;
-layout(location = 1) out vec3 oNormal;
-layout(location = 2) out vec2 oTexCoord;
+layout(location = 0) out vec3 oNormal;
+layout(location = 1) out vec2 oTexCoord;
 
 void main()
 {
-	oPosition = iPosition;
-	oNormal   = iNormal;
-	oTexCoord = iTexCoord;
+	gl_Position.xyz = iPosition;
+	oNormal         = iNormal;
+	oTexCoord       = iTexCoord;
 }
 
 #endif // _VERTEX_
@@ -42,49 +44,37 @@ void main()
 
 layout(vertices=3) out;
 
-layout(location = 0) in vec3 iPosition[];
-layout(location = 1) in vec3 iNormal[];
-layout(location = 2) in vec2 iTexCoord[];
+layout(location = 0) in vec3 iNormal[];
+layout(location = 1) in vec2 iTexCoord[];
 
-layout(location = 0) out vec3 oPosition[3];
-layout(location = 3) out vec3 oNormal[3];
-layout(location = 6) out vec2 oTexCoord[3];
-layout(location = 9) patch out PnPatch oPnPatch;
-//layout(location = 9)  patch out float oB210[3];
-//layout(location = 12) patch out float oB120[3];
-//layout(location = 15) patch out float oB021[3];
-//layout(location = 18) patch out float oB012[3];
-//layout(location = 21) patch out float oB102[3];
-//layout(location = 24) patch out float oB201[3];
-//layout(location = 27) patch out float oB111[3];
-//layout(location = 30) patch out float oN110[3];
-//layout(location = 33) patch out float oN011[3];
-//layout(location = 36) patch out float oN101[3];
-
+layout(location = 0) out vec3 oNormal[3];
+layout(location = 3) out vec2 oTexCoord[3];
+layout(location = 6) patch out PnPatch oPnPatch;
 
 float wij(int i, int j)
 {
-	return dot(iPosition[j] - iPosition[i], iNormal[i]);
+	return dot(gl_in[j].gl_Position.xyz - gl_in[i].gl_Position.xyz, iNormal[i]);
 }
 
 float vij(int i, int j)
 {
-	vec3 Pj_minus_Pi    = iPosition[j] - iPosition[i];
-	vec3 Ni_plus_Nj     = iNormal[i]+iNormal[j];
+	vec3 Pj_minus_Pi = gl_in[j].gl_Position.xyz
+	                 - gl_in[i].gl_Position.xyz;
+	vec3 Ni_plus_Nj  = iNormal[i]+iNormal[j];
 	return 2.0*dot(Pj_minus_Pi, Ni_plus_Nj)/dot(Pj_minus_Pi, Pj_minus_Pi);
 }
 
 void main()
 {
 	// get texcoord
-	oPosition[gl_InvocationID] = iPosition[gl_InvocationID];
-	oNormal[gl_InvocationID]   = iNormal[gl_InvocationID];
-	oTexCoord[gl_InvocationID] = iTexCoord[gl_InvocationID];
+	gl_out[gl_InvocationID].gl_Position = gl_in[gl_InvocationID].gl_Position;
+	oNormal[gl_InvocationID]            = iNormal[gl_InvocationID];
+	oTexCoord[gl_InvocationID]          = iTexCoord[gl_InvocationID];
 
 	// set base 
-	float P0 = iPosition[0][gl_InvocationID];
-	float P1 = iPosition[1][gl_InvocationID];
-	float P2 = iPosition[2][gl_InvocationID];
+	float P0 = gl_in[0].gl_Position[gl_InvocationID];
+	float P1 = gl_in[1].gl_Position[gl_InvocationID];
+	float P2 = gl_in[2].gl_Position[gl_InvocationID];
 	float N0 = iNormal[0][gl_InvocationID];
 	float N1 = iNormal[1][gl_InvocationID];
 	float N2 = iNormal[2][gl_InvocationID];
@@ -118,28 +108,16 @@ void main()
 #ifdef _TESS_EVALUATION_
 layout(triangles, fractional_odd_spacing, ccw) in;
 
-layout(location = 0) in vec3 iPosition[];
-layout(location = 3) in vec3 iNormal[];
-layout(location = 6) in vec2 iTexCoord[];
-layout(location = 9) patch in PnPatch iPnPatch;
-//layout(location = 9)  patch in float iB210[3];
-//layout(location = 12) patch in float iB120[3];
-//layout(location = 15) patch in float iB021[3];
-//layout(location = 18) patch in float iB012[3];
-//layout(location = 21) patch in float iB102[3];
-//layout(location = 24) patch in float iB201[3];
-//layout(location = 27) patch in float iB111[3];
-//layout(location = 30) patch in float iN110[3];
-//layout(location = 33) patch in float iN011[3];
-//layout(location = 36) patch in float iN101[3];
-
+layout(location = 0) in vec3 iNormal[];
+layout(location = 3) in vec2 iTexCoord[];
+layout(location = 6) patch in PnPatch iPnPatch;
 
 layout(location = 0) out vec3 oNormal;
 layout(location = 1) out vec2 oTexCoord;
 
-#define b300    iPosition[0]
-#define b030    iPosition[1]
-#define b003    iPosition[2]
+#define b300    gl_in[0].gl_Position.xyz
+#define b030    gl_in[1].gl_Position.xyz
+#define b003    gl_in[2].gl_Position.xyz
 #define n200    iNormal[0]
 #define n020    iNormal[1]
 #define n002    iNormal[2]
@@ -170,16 +148,22 @@ void main()
 	                           iPnPatch.n101[1],
 	                           iPnPatch.n101[2]));
 
+	// compute texcoords
 	oTexCoord  = gl_TessCoord[2]*iTexCoord[0]
 	           + gl_TessCoord[0]*iTexCoord[1]
 	           + gl_TessCoord[1]*iTexCoord[2];
-	oNormal    = n200*uvwSquared[2]
-	           + n020*uvwSquared[0]
-	           + n002*uvwSquared[1]
-	           + n110*uvw[2]*uvw[0]
-	           + n011*uvw[0]*uvw[1]
-	           + n101*uvw[2]*uvw[1];
 
+	// normal
+	vec3 barNormal = gl_TessCoord[0]*iNormal[0]
+	               + gl_TessCoord[1]*iNormal[1]
+	               + gl_TessCoord[2]*iNormal[2];
+	vec3 pnNormal  = n200*uvwSquared[2]
+	               + n020*uvwSquared[0]
+	               + n002*uvwSquared[1]
+	               + n110*uvw[2]*uvw[0]
+	               + n011*uvw[0]*uvw[1]
+	               + n101*uvw[2]*uvw[1];
+	oNormal = alpha*pnNormal + (1.0-alpha)*barNormal; // should we normalize ?
 
 	// compute interpolated pos
 	vec3 barPos = gl_TessCoord[0]*b300
@@ -201,8 +185,8 @@ void main()
 	            + b012*uvwSquared[1]*uvw[0]
 	            + b111*6.0*uvw[0]*uvw[1]*uvw[2];
 
-	// final position
-	vec3 finalPos = (1.0-uAlpha)*barPos + uAlpha*pnPos;
+	// final position and normal
+	vec3 finalPos = (1.0-uTessAlpha)*barPos + uTessAlpha*pnPos;
 	gl_Position   = uModelViewProjection * vec4(finalPos,1.0);
 }
 
@@ -217,10 +201,14 @@ layout(location = 0) out vec4 oColor;
 
 void main()
 {
+#ifndef _WIRE
 	vec3 N = normalize(iNormal);
-	vec3 L = normalize(vec3(1.0,1.0,1.0));
-	oColor = max(dot(N, L), 0.0)*texture(sSkin, iTexCoord.st);
-	oColor.rgb = abs(N);
+	vec3 L = normalize(vec3(1.0));
+	oColor = max(dot(N, L), 0.0)*texture(sSkin, iTexCoord);
+//	oColor.rgb = abs(N);
+#else
+	oColor.rgb = vec3(1.0);
+#endif
 }
 
 #endif // _FRAGMENT_

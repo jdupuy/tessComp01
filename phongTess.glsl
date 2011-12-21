@@ -1,9 +1,11 @@
 #version 420 core
 
+#ifndef _WIRE
 uniform sampler2D sSkin;
+#endif
 
 uniform float uTessLevels;
-uniform float uAlpha;
+uniform float uTessAlpha;
 uniform mat4  uModelViewProjection;
 
 #ifdef _VERTEX_
@@ -121,7 +123,7 @@ void main()
 	                + tc1[2]*tc1[0]*(iPIk_Pi[0]+iPIi_Pk[0]);
 
 	// final position
-	vec3 finalPos = (1.0-uAlpha)*barPos + uAlpha*phongPos;
+	vec3 finalPos = (1.0-uTessAlpha)*barPos + uTessAlpha*phongPos;
 	gl_Position   = uModelViewProjection * vec4(finalPos,1.0);
 }
 
@@ -136,10 +138,14 @@ layout(location=0) out vec4 oColor;
 
 void main()
 {
+#ifndef _WIRE
 	vec3 N = normalize(iNormal);
 	vec3 L = normalize(vec3(1.0));
 	oColor = max(dot(N, L), 0.0)*texture(sSkin, iTexCoord);
-	oColor.rgb = abs(N);
+//	oColor.rgb = abs(N);
+#else
+	oColor.rgb = vec3(0.0,1.0,0.0);
+#endif
 }
 
 #endif // _FRAGMENT_
