@@ -195,7 +195,7 @@ void on_init()
 	          << "GL_MAX_VARYING_FLOATS    : " << maxVaryingFloats << '\n';
 
 	// load Md2 model
-	md2 = new Md2("droid.md2");
+	md2 = new Md2("knight.md2");
 
 	// alloc names
 	buffers      = new GLuint[BUFFER_COUNT];
@@ -211,7 +211,7 @@ void on_init()
 		programs[i] = glCreateProgram();
 
 	// configure texture
-	fw::Tga tga("droid.tga");
+	fw::Tga tga("knight.tga");
 	glActiveTexture(GL_TEXTURE0+TEXTURE_SKIN_MD2);
 	glBindTexture(GL_TEXTURE_2D, textures[TEXTURE_SKIN_MD2]);
 		glTexParameteri( GL_TEXTURE_2D,
@@ -537,6 +537,7 @@ void on_update()
 	                          1,
 	                          0,
 	                          reinterpret_cast<float*>(&mvp));
+
 	// render the model
 	glBindVertexArray(vertexArrays[VERTEX_ARRAY_MD2]);
 	if(drawPolyFull)
