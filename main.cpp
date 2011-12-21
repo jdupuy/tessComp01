@@ -4,7 +4,7 @@
 ////////////////////////////////////////////////////////////////////////////////
 
 // enable gui
-//#define _ANT_ENABLE
+#define _ANT_ENABLE
 
 // GL libraries
 #include "glew.hpp"
@@ -665,7 +665,10 @@ void on_mouse_motion(GLint x, GLint y)
 		model.RotateAboutWorldX(-0.01f*MOUSE_YREL);
 		model.RotateAboutLocalY(-0.01f*MOUSE_XREL);
 	}
-
+	if(mouseRight)
+	{
+		model.TranslateWorld(Vector3(-0.1f*MOUSE_XREL, 0.1f*MOUSE_YREL, 0));
+	}
 }
 
 
