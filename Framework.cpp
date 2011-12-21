@@ -150,8 +150,8 @@ static void _attach_shader( GLuint program,
 	glGetShaderiv(shader, GL_COMPILE_STATUS, &isCompiled);
 	if(isCompiled == GL_FALSE)
 	{
-		GLchar logContent[256];
-		glGetShaderInfoLog(shader, 256, NULL, logContent);
+		GLchar logContent[1024];
+		glGetShaderInfoLog(shader, 1024, NULL, logContent);
 		throw _ShaderCompilationFailedException(std::string(logContent));
 	}
 
@@ -299,8 +299,8 @@ GLvoid build_glsl_program( GLuint program,
 		glGetProgramiv(program, GL_LINK_STATUS, &linkStatus);
 		if(GL_FALSE == linkStatus)
 		{
-			GLchar logContent[512];
-			glGetProgramInfoLog(program, 512, NULL, logContent);
+			GLchar logContent[2048];
+			glGetProgramInfoLog(program, 2048, NULL, logContent);
 			throw _ProgramLinkFailException(srcfile, logContent);
 		}
 	}
