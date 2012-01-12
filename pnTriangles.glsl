@@ -3,16 +3,16 @@
 // PN patch data
 struct PnPatch
 {
-	float b210[3];
-	float b120[3];
-	float b021[3];
-	float b012[3];
-	float b102[3];
-	float b201[3];
-	float b111[3];
-	float n110[3];
-	float n011[3];
-	float n101[3];
+	float b210;
+	float b120;
+	float b021;
+	float b012;
+	float b102;
+	float b201;
+	float b111;
+	float n110;
+	float n011;
+	float n101;
 };
 
 #ifndef _WIRE
@@ -49,7 +49,7 @@ layout(location = 1) in vec2 iTexCoord[];
 
 layout(location = 0) out vec3 oNormal[3];
 layout(location = 3) out vec2 oTexCoord[3];
-layout(location = 6) patch out PnPatch oPnPatch;
+layout(location = 6) out PnPatch oPnPatch[3];
 
 float wij(int i, int j)
 {
@@ -80,23 +80,23 @@ void main()
 	float N2 = iNormal[2][gl_InvocationID];
 
 	// compute control points (will be evaluated three times ...)
-	oPnPatch.b210[gl_InvocationID] = (2.0*P0 + P1 - wij(0,1)*N0)/3.0;
-	oPnPatch.b120[gl_InvocationID] = (2.0*P1 + P0 - wij(1,0)*N1)/3.0;
-	oPnPatch.b021[gl_InvocationID] = (2.0*P1 + P2 - wij(1,2)*N1)/3.0;
-	oPnPatch.b012[gl_InvocationID] = (2.0*P2 + P1 - wij(2,1)*N2)/3.0;
-	oPnPatch.b102[gl_InvocationID] = (2.0*P2 + P0 - wij(2,0)*N2)/3.0;
-	oPnPatch.b201[gl_InvocationID] = (2.0*P0 + P2 - wij(0,2)*N0)/3.0;
-	float E = ( oPnPatch.b210[gl_InvocationID]
-	          + oPnPatch.b120[gl_InvocationID]
-	          + oPnPatch.b021[gl_InvocationID]
-	          + oPnPatch.b012[gl_InvocationID]
-	          + oPnPatch.b102[gl_InvocationID]
-	          + oPnPatch.b201[gl_InvocationID] ) / 6.0;
+	oPnPatch[gl_InvocationID].b210 = (2.0*P0 + P1 - wij(0,1)*N0)/3.0;
+	oPnPatch[gl_InvocationID].b120 = (2.0*P1 + P0 - wij(1,0)*N1)/3.0;
+	oPnPatch[gl_InvocationID].b021 = (2.0*P1 + P2 - wij(1,2)*N1)/3.0;
+	oPnPatch[gl_InvocationID].b012 = (2.0*P2 + P1 - wij(2,1)*N2)/3.0;
+	oPnPatch[gl_InvocationID].b102 = (2.0*P2 + P0 - wij(2,0)*N2)/3.0;
+	oPnPatch[gl_InvocationID].b201 = (2.0*P0 + P2 - wij(0,2)*N0)/3.0;
+	float E = ( oPnPatch[gl_InvocationID].b210
+	          + oPnPatch[gl_InvocationID].b120
+	          + oPnPatch[gl_InvocationID].b021
+	          + oPnPatch[gl_InvocationID].b012
+	          + oPnPatch[gl_InvocationID].b102
+	          + oPnPatch[gl_InvocationID].b201 ) / 6.0;
 	float V = (P0 + P1 + P2)/3.0;
-	oPnPatch.b111[gl_InvocationID] = E + (E - V)*0.5;
-	oPnPatch.n110[gl_InvocationID] = N0+N1-vij(0,1)*(P1-P0);
-	oPnPatch.n011[gl_InvocationID] = N1+N2-vij(1,2)*(P2-P1);
-	oPnPatch.n101[gl_InvocationID] = N2+N0-vij(2,0)*(P0-P2);
+	oPnPatch[gl_InvocationID].b111 = E + (E - V)*0.5;
+	oPnPatch[gl_InvocationID].n110 = N0+N1-vij(0,1)*(P1-P0);
+	oPnPatch[gl_InvocationID].n011 = N1+N2-vij(1,2)*(P2-P1);
+	oPnPatch[gl_InvocationID].n101 = N2+N0-vij(2,0)*(P0-P2);
 
 	// set tess levels
 	gl_TessLevelOuter[gl_InvocationID] = uTessLevels;
@@ -110,7 +110,7 @@ layout(triangles, fractional_odd_spacing, ccw) in;
 
 layout(location = 0) in vec3 iNormal[];
 layout(location = 3) in vec2 iTexCoord[];
-layout(location = 6) patch in PnPatch iPnPatch;
+layout(location = 6) in PnPatch iPnPatch[];
 
 layout(location = 0) out vec3 oNormal;
 layout(location = 1) out vec2 oTexCoord;
@@ -129,24 +129,24 @@ void main()
 	vec3 uvwCubed   = uvwSquared*uvw;
 
 	// extract control points
-	vec3 b210 = vec3(iPnPatch.b210[0], iPnPatch.b210[1], iPnPatch.b210[2]);
-	vec3 b120 = vec3(iPnPatch.b120[0], iPnPatch.b120[1], iPnPatch.b120[2]);
-	vec3 b021 = vec3(iPnPatch.b021[0], iPnPatch.b021[1], iPnPatch.b021[2]);
-	vec3 b012 = vec3(iPnPatch.b012[0], iPnPatch.b012[1], iPnPatch.b012[2]);
-	vec3 b102 = vec3(iPnPatch.b102[0], iPnPatch.b102[1], iPnPatch.b102[2]);
-	vec3 b201 = vec3(iPnPatch.b201[0], iPnPatch.b201[1], iPnPatch.b201[2]);
-	vec3 b111 = vec3(iPnPatch.b111[0], iPnPatch.b111[1], iPnPatch.b111[2]);
+	vec3 b210 = vec3(iPnPatch[0].b210, iPnPatch[1].b210, iPnPatch[2].b210);
+	vec3 b120 = vec3(iPnPatch[0].b120, iPnPatch[1].b120, iPnPatch[2].b120);
+	vec3 b021 = vec3(iPnPatch[0].b021, iPnPatch[1].b021, iPnPatch[2].b021);
+	vec3 b012 = vec3(iPnPatch[0].b012, iPnPatch[1].b012, iPnPatch[2].b012);
+	vec3 b102 = vec3(iPnPatch[0].b102, iPnPatch[1].b102, iPnPatch[2].b102);
+	vec3 b201 = vec3(iPnPatch[0].b201, iPnPatch[1].b201, iPnPatch[2].b201);
+	vec3 b111 = vec3(iPnPatch[0].b111, iPnPatch[1].b111, iPnPatch[2].b111);
 
 	// extract control normals
-	vec3 n110 = normalize(vec3(iPnPatch.n110[0],
-	                           iPnPatch.n110[1],
-	                           iPnPatch.n110[2]));
-	vec3 n011 = normalize(vec3(iPnPatch.n011[0],
-	                           iPnPatch.n011[1],
-	                           iPnPatch.n011[2]));
-	vec3 n101 = normalize(vec3(iPnPatch.n101[0],
-	                           iPnPatch.n101[1],
-	                           iPnPatch.n101[2]));
+	vec3 n110 = normalize(vec3(iPnPatch[0].n110,
+	                           iPnPatch[1].n110,
+	                           iPnPatch[2].n110));
+	vec3 n011 = normalize(vec3(iPnPatch[0].n011,
+	                           iPnPatch[1].n011,
+	                           iPnPatch[2].n011));
+	vec3 n101 = normalize(vec3(iPnPatch[0].n101,
+	                           iPnPatch[1].n101,
+	                           iPnPatch[2].n101));
 
 	// compute texcoords
 	oTexCoord  = gl_TessCoord[2]*iTexCoord[0]
