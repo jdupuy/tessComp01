@@ -3,12 +3,9 @@
 // Phong tess patch data
 struct PhongPatch
 {
-	float PIi_Pj[3];
-	float PIj_Pi[3];
-	float PIj_Pk[3];
-	float PIk_Pj[3];
-	float PIk_Pi[3];
-	float PIi_Pk[3];
+	float termIJ;
+	float termJK;
+	float termIK;
 };
 
 #ifndef _WIRE
@@ -45,7 +42,7 @@ layout(location = 1)   in vec2 iTexCoord[];
 
 layout(location=0) out vec3 oNormal[3];
 layout(location=3) out vec2 oTexCoord[3];
-layout(location=6) patch out PhongPatch oPhongPatch;
+layout(location=6) out PhongPatch oPhongPatch[3];
 
 #define Pi  gl_in[0].gl_Position.xyz
 #define Pj  gl_in[1].gl_Position.xyz
@@ -66,12 +63,9 @@ void main()
 	oTexCoord[gl_InvocationID] = iTexCoord[gl_InvocationID];
 
 	// compute patch data
-	oPhongPatch.PIi_Pj[gl_InvocationID] = PIi(0,Pj);
-	oPhongPatch.PIj_Pi[gl_InvocationID] = PIi(1,Pi);
-	oPhongPatch.PIj_Pk[gl_InvocationID] = PIi(1,Pk);
-	oPhongPatch.PIk_Pj[gl_InvocationID] = PIi(2,Pj);
-	oPhongPatch.PIk_Pi[gl_InvocationID] = PIi(2,Pi);
-	oPhongPatch.PIi_Pk[gl_InvocationID] = PIi(0,Pk);
+	oPhongPatch[gl_InvocationID].termIJ = PIi(0,Pj) + PIi(1,Pi);
+	oPhongPatch[gl_InvocationID].termJK = PIi(1,Pk) + PIi(2,Pj);
+	oPhongPatch[gl_InvocationID].termIK = PIi(2,Pi) + PIi(0,Pk);
 
 	// tesselate
 	gl_TessLevelOuter[gl_InvocationID] = uTessLevels;
@@ -85,7 +79,7 @@ layout(triangles, fractional_odd_spacing, ccw) in;
 
 layout(location=0) in vec3 iNormal[];
 layout(location=3) in vec2 iTexCoord[];
-layout(location=6) patch in PhongPatch iPhongPatch;
+layout(location=6) in PhongPatch iPhongPatch[];
 
 layout(location=0) out vec3 oNormal;
 layout(location=1) out vec2 oTexCoord;
@@ -113,24 +107,24 @@ void main()
 	            + gl_TessCoord[1]*Pj
 	            + gl_TessCoord[2]*Pk;
 
-	// build phong tess constants
-	vec3 term1 = vec3(iPhongPatch.PIi_Pj[0] + iPhongPatch.PIj_Pi[0],
-	                  iPhongPatch.PIi_Pj[1] + iPhongPatch.PIj_Pi[1],
-	                  iPhongPatch.PIi_Pj[2] + iPhongPatch.PIj_Pi[2]);
-	vec3 term2 = vec3(iPhongPatch.PIj_Pk[0] + iPhongPatch.PIk_Pj[0],
-	                  iPhongPatch.PIj_Pk[1] + iPhongPatch.PIk_Pj[1],
-	                  iPhongPatch.PIj_Pk[2] + iPhongPatch.PIk_Pj[2]);
-	vec3 term3 = vec3(iPhongPatch.PIk_Pi[0] + iPhongPatch.PIi_Pk[0],
-	                  iPhongPatch.PIk_Pi[1] + iPhongPatch.PIi_Pk[1],
-	                  iPhongPatch.PIk_Pi[2] + iPhongPatch.PIi_Pk[2]);
+	// build terms
+	vec3 termIJ = vec3(iPhongPatch[0].termIJ,
+	                   iPhongPatch[1].termIJ,
+	                   iPhongPatch[2].termIJ);
+	vec3 termJK = vec3(iPhongPatch[0].termJK,
+	                   iPhongPatch[1].termJK,
+	                   iPhongPatch[2].termJK);
+	vec3 termIK = vec3(iPhongPatch[0].termIK,
+	                   iPhongPatch[1].termIK,
+	                   iPhongPatch[2].termIK);
 
 	// phong tesselated pos
 	vec3 phongPos   = tc2[0]*Pi
 	                + tc2[1]*Pj
 	                + tc2[2]*Pk
-	                + tc1[0]*tc1[1]*(term1)
-	                + tc1[1]*tc1[2]*(term2)
-	                + tc1[2]*tc1[0]*(term3);
+	                + tc1[0]*tc1[1]*termIJ
+	                + tc1[1]*tc1[2]*termJK
+	                + tc1[2]*tc1[0]*termIK;
 
 	// final position
 	vec3 finalPos = (1.0-uTessAlpha)*barPos + uTessAlpha*phongPos;
