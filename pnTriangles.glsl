@@ -66,7 +66,7 @@ float vij(int i, int j)
 
 void main()
 {
-	// get texcoord
+	// get data
 	gl_out[gl_InvocationID].gl_Position = gl_in[gl_InvocationID].gl_Position;
 	oNormal[gl_InvocationID]            = iNormal[gl_InvocationID];
 	oTexCoord[gl_InvocationID]          = iTexCoord[gl_InvocationID];
