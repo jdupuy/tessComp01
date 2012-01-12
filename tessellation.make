@@ -26,7 +26,7 @@ ifeq ($(config),debug64)
   DEFINES   += -DDEBUG
   INCLUDES  += -Iinclude -Icore
   CPPFLAGS  += -MMD -MP $(DEFINES) $(INCLUDES)
-  CFLAGS    += $(CPPFLAGS) $(ARCH) -g -Wall -m64
+  CFLAGS    += $(CPPFLAGS) $(ARCH) -g -Wall -m64 ln -sf ./libGLEW.so.1.7.0 ./lib/linux/lin64/libGLEW.so.1.7 ln -sf ./libGLEW.so.1.7.0 ./lib/linux/lin64/libGLEW.so ln -sf ./libglut.so.3.9.0 ./lib/linux/lin64/libglut.so ln -sf ./libglut.so.3.9.0 ./lib/linux/lin64/libglut.so.3 ln -sf ./libAntTweakBar.so ./lib/linux/lin64/libAntTweakBar.so.1
   CXXFLAGS  += $(CFLAGS) 
   LDFLAGS   += -m64 -L/usr/lib64 -Wl,-rpath,./lib/linux/lin64 -L./lib/linux/lin64 -lGLEW -lglut -lAntTweakBar -Llib/linux/lin64
   LIBS      += 
@@ -48,7 +48,7 @@ ifeq ($(config),release64)
   DEFINES   += -DNDEBUG
   INCLUDES  += -Iinclude -Icore
   CPPFLAGS  += -MMD -MP $(DEFINES) $(INCLUDES)
-  CFLAGS    += $(CPPFLAGS) $(ARCH) -O2 -m64
+  CFLAGS    += $(CPPFLAGS) $(ARCH) -O2 -m64 ln -sf ./libGLEW.so.1.7.0 ./lib/linux/lin64/libGLEW.so.1.7 ln -sf ./libGLEW.so.1.7.0 ./lib/linux/lin64/libGLEW.so ln -sf ./libglut.so.3.9.0 ./lib/linux/lin64/libglut.so ln -sf ./libglut.so.3.9.0 ./lib/linux/lin64/libglut.so.3 ln -sf ./libAntTweakBar.so ./lib/linux/lin64/libAntTweakBar.so.1
   CXXFLAGS  += $(CFLAGS) 
   LDFLAGS   += -s -m64 -L/usr/lib64 -Wl,-rpath,./lib/linux/lin64 -L./lib/linux/lin64 -lGLEW -lglut -lAntTweakBar -Llib/linux/lin64
   LIBS      += 
@@ -70,7 +70,7 @@ ifeq ($(config),debug32)
   DEFINES   += -DDEBUG
   INCLUDES  += -Iinclude -Icore
   CPPFLAGS  += -MMD -MP $(DEFINES) $(INCLUDES)
-  CFLAGS    += $(CPPFLAGS) $(ARCH) -g -Wall -m32
+  CFLAGS    += $(CPPFLAGS) $(ARCH) -g -Wall -m32 ln -sf ./libGLEW.so.1.7.0 ./lib/linux/lin32/libGLEW.so.1.7 ln -sf ./libGLEW.so.1.7.0 ./lib/linux/lin32/libGLEW.so ln -sf ./libglut.so.3.9.0 ./lib/linux/lin32/libglut.so ln -sf ./libglut.so.3.9.0 ./lib/linux/lin32/libglut.so.3 ln -sf ./libAntTweakBar.so ./lib/linux/lin32/libAntTweakBar.so.1
   CXXFLAGS  += $(CFLAGS) 
   LDFLAGS   += -m32 -L/usr/lib32 -Wl,-rpath,./lib/linux/lin32 -L./lib/linux/lin32 -lGLEW -lglut -lAntTweakBar -Llib/linux/lin32
   LIBS      += 
@@ -92,7 +92,7 @@ ifeq ($(config),release32)
   DEFINES   += -DNDEBUG
   INCLUDES  += -Iinclude -Icore
   CPPFLAGS  += -MMD -MP $(DEFINES) $(INCLUDES)
-  CFLAGS    += $(CPPFLAGS) $(ARCH) -O2 -m32
+  CFLAGS    += $(CPPFLAGS) $(ARCH) -O2 -m32 ln -sf ./libGLEW.so.1.7.0 ./lib/linux/lin32/libGLEW.so.1.7 ln -sf ./libGLEW.so.1.7.0 ./lib/linux/lin32/libGLEW.so ln -sf ./libglut.so.3.9.0 ./lib/linux/lin32/libglut.so ln -sf ./libglut.so.3.9.0 ./lib/linux/lin32/libglut.so.3 ln -sf ./libAntTweakBar.so ./lib/linux/lin32/libAntTweakBar.so.1
   CXXFLAGS  += $(CFLAGS) 
   LDFLAGS   += -s -m32 -L/usr/lib32 -Wl,-rpath,./lib/linux/lin32 -L./lib/linux/lin32 -lGLEW -lglut -lAntTweakBar -Llib/linux/lin32
   LIBS      += 
@@ -112,13 +112,13 @@ OBJECTS := \
 	$(OBJDIR)/main.o \
 	$(OBJDIR)/Framework.o \
 	$(OBJDIR)/Vector2.o \
-	$(OBJDIR)/Vector3.o \
-	$(OBJDIR)/Matrix2x2.o \
+	$(OBJDIR)/Vector4.o \
 	$(OBJDIR)/Affine.o \
 	$(OBJDIR)/Projection.o \
 	$(OBJDIR)/Matrix3x3.o \
+	$(OBJDIR)/Vector3.o \
+	$(OBJDIR)/Matrix2x2.o \
 	$(OBJDIR)/Matrix4x4.o \
-	$(OBJDIR)/Vector4.o \
 
 RESOURCES := \
 
@@ -191,10 +191,7 @@ $(OBJDIR)/Framework.o: Framework.cpp
 $(OBJDIR)/Vector2.o: core/Vector2.cpp
 	@echo $(notdir $<)
 	$(SILENT) $(CXX) $(CXXFLAGS) -o "$@" -c "$<"
-$(OBJDIR)/Vector3.o: core/Vector3.cpp
-	@echo $(notdir $<)
-	$(SILENT) $(CXX) $(CXXFLAGS) -o "$@" -c "$<"
-$(OBJDIR)/Matrix2x2.o: core/Matrix2x2.cpp
+$(OBJDIR)/Vector4.o: core/Vector4.cpp
 	@echo $(notdir $<)
 	$(SILENT) $(CXX) $(CXXFLAGS) -o "$@" -c "$<"
 $(OBJDIR)/Affine.o: core/Affine.cpp
@@ -206,10 +203,13 @@ $(OBJDIR)/Projection.o: core/Projection.cpp
 $(OBJDIR)/Matrix3x3.o: core/Matrix3x3.cpp
 	@echo $(notdir $<)
 	$(SILENT) $(CXX) $(CXXFLAGS) -o "$@" -c "$<"
-$(OBJDIR)/Matrix4x4.o: core/Matrix4x4.cpp
+$(OBJDIR)/Vector3.o: core/Vector3.cpp
 	@echo $(notdir $<)
 	$(SILENT) $(CXX) $(CXXFLAGS) -o "$@" -c "$<"
-$(OBJDIR)/Vector4.o: core/Vector4.cpp
+$(OBJDIR)/Matrix2x2.o: core/Matrix2x2.cpp
+	@echo $(notdir $<)
+	$(SILENT) $(CXX) $(CXXFLAGS) -o "$@" -c "$<"
+$(OBJDIR)/Matrix4x4.o: core/Matrix4x4.cpp
 	@echo $(notdir $<)
 	$(SILENT) $(CXX) $(CXXFLAGS) -o "$@" -c "$<"
 
