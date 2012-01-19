@@ -183,17 +183,6 @@ static void TW_CALL play_pause(void* data)
 // on init cb
 void on_init()
 {
-	// tests
-	GLint maxVaryingComponents=0;
-	GLint maxVaryingVectors   =0;
-	GLint maxVaryingFloats    =0;
-	glGetIntegerv(GL_MAX_VARYING_COMPONENTS, &maxVaryingComponents);
-	glGetIntegerv(GL_MAX_VARYING_VECTORS, &maxVaryingVectors);
-	glGetIntegerv(GL_MAX_VARYING_FLOATS, &maxVaryingFloats);
-	std::cout << "GL_MAX_VARYING_COMPONENTS: " << maxVaryingComponents << '\n'
-	          << "GL_MAX_VARYING_VECTORS   : " << maxVaryingVectors << '\n'
-	          << "GL_MAX_VARYING_FLOATS    : " << maxVaryingFloats << '\n';
-
 	// load Md2 model
 	md2 = new Md2("knight.md2");
 
