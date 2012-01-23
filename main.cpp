@@ -166,6 +166,18 @@ void set_shading_mode()
 	                       modeToStr[shadingMode],
 	                       GL_TRUE);
 
+	// set texture
+	if(shadingMode != SHADING_MODE_NORMALS) {
+	glProgramUniform1i( programs[PROGRAM_TESS_PN],
+	                    glGetUniformLocation( programs[PROGRAM_TESS_PN],
+	                                          "sSkin"),
+	                    TEXTURE_SKIN_MD2 );
+	glProgramUniform1i( programs[PROGRAM_TESS_PHONG],
+	                    glGetUniformLocation( programs[PROGRAM_TESS_PHONG],
+	                                          "sSkin"),
+	                    TEXTURE_SKIN_MD2 );
+	}
+
 	// re set uniforms
 	set_tess_levels();
 	set_tess_alpha();
@@ -340,16 +352,9 @@ void on_init()
 	                       "phongTess.glsl",
 	                       "#define _WIRE",
 	                       GL_TRUE);
-	glProgramUniform1i( programs[PROGRAM_TESS_PN],
-	                    glGetUniformLocation( programs[PROGRAM_TESS_PN],
-	                                          "sSkin"),
-	                    TEXTURE_SKIN_MD2 );
-	glProgramUniform1i( programs[PROGRAM_TESS_PHONG],
-	                    glGetUniformLocation( programs[PROGRAM_TESS_PHONG],
-	                                          "sSkin"),
-	                    TEXTURE_SKIN_MD2 );
-	set_tess_levels();
-	set_tess_alpha();
+
+	// set shading programs
+	set_shading_mode();
 
 	glEnable(GL_DEPTH_TEST);
 	glEnable(GL_CULL_FACE);
@@ -630,6 +635,7 @@ void on_update()
 	glBindVertexArray(0);
 
 #ifdef _ANT_ENABLE
+	glUseProgram(0);
 	TwDraw();
 #endif // _ANT_ENABLE
 
