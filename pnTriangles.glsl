@@ -197,17 +197,25 @@ void main()
 layout(location = 0) in vec3 iNormal;
 layout(location = 1) in vec2 iTexCoord;
 
-layout(location = 0) out vec4 oColor;
+layout(location = 0) out vec4 oColour;
 
 void main()
 {
-#ifndef _WIRE
 	vec3 N = normalize(iNormal);
 	vec3 L = normalize(vec3(1.0));
-	oColor = max(dot(N, L), 0.0)*texture(sSkin, iTexCoord);
-//	oColor.rgb = abs(N);
+
+#if defined _SHADED
+	oColour = max(dot(N, L), 0.0)*texture(sSkin, iTexCoord);
+
+#elif defined _WIRE
+	oColour.rgb = vec3(0.0,1.0,0.0);
+
+#elif defined _NORMAL
+	oColour.rgb = abs(N);
+
 #else
-	oColor.rgb = vec3(0.0,1.0,0.0);
+	oColour = texture(sSkin, iTexCoord);
+
 #endif
 }
 
