@@ -34,8 +34,16 @@
 
 // Constants
 const GLuint STREAM_BUFFER_CAPACITY = 8192*1024; // 8MBytes
-enum // OpenGLNames
-{
+
+// Shading modes
+enum ShadingMode {
+	SHADING_MODE_DIFFUSE_ONLY=0,
+	SHADING_MODE_SHADED,
+	SHADING_MODE_NORMALS
+};
+
+// OpenGLNames
+enum {
 	// buffers
 	BUFFER_VERTEX_MD2 = 0,
 	BUFFER_COUNT,
@@ -74,6 +82,8 @@ float tessLevel = 1.0f; // level of tessellation
 float tessAlpha = 1.0f; // level of tessellation
 bool drawPolyLines = false;
 bool drawPolyFull  = true;
+bool drawNormals   = true;
+GLint shadingMode  = SHADING_MODE_DIFFUSE_ONLY;
 
 #ifdef _ANT_ENABLE
 std::string activeAnimation;  // active animation name
@@ -134,6 +144,34 @@ void set_tess_alpha()
 	                   tessAlpha);
 }
 
+void set_shading_mode()
+{
+	static const GLchar *modeToStr[] = {
+		"",
+		"#define _SHADED\n",
+		"#define _NORMAL\n"
+	};
+
+	// delete programs and rebuild
+	glDeleteProgram(programs[PROGRAM_TESS_PN]);
+	glDeleteProgram(programs[PROGRAM_TESS_PHONG]);
+	programs[PROGRAM_TESS_PN] = glCreateProgram();
+	programs[PROGRAM_TESS_PHONG] = glCreateProgram();
+	fw::build_glsl_program(programs[PROGRAM_TESS_PN],
+	                       "pnTriangles.glsl",
+	                       modeToStr[shadingMode],
+	                       GL_TRUE);
+	fw::build_glsl_program(programs[PROGRAM_TESS_PHONG],
+	                       "phongTess.glsl",
+	                       modeToStr[shadingMode],
+	                       GL_TRUE);
+
+	// re set uniforms
+	set_tess_levels();
+	set_tess_alpha();
+
+}
+
 #ifdef _ANT_ENABLE
 
 static void TW_CALL tess_level_set_cb(const void *value, void *clientData)
@@ -175,6 +213,17 @@ static void TW_CALL play_pause(void* data)
 		md2->Pause();
 	else
 		md2->Play();
+}
+
+static void TW_CALL set_shading_mode_cb(const void *value, void *clientData)
+{
+	shadingMode = *(const GLint *)value;
+	set_shading_mode();
+}
+
+static void TW_CALL get_shading_mode_cb(void *value, void *clientData)
+{
+	*(GLint *)value = shadingMode;
 }
 
 #endif
@@ -315,7 +364,7 @@ void on_init()
 
 	// Create a new bar
 	TwBar* menuBar = TwNewBar("menu");
-	TwDefine("menu size='200 250'");
+	TwDefine("menu size='220 190'");
 	TwAddButton( menuBar,
 	             "fullscreen",
 	             &toggle_fullscreen,
@@ -331,11 +380,6 @@ void on_init()
 	             &play_pause,
 	             NULL,
 	             "label='play/pause animation'" );
-//	TwAddVarRO( menuBar,
-//	            "speed",
-//	            TW_TYPE_DOUBLE,
-//	            &streamingTime,
-//	            "label='streaming speed (ms)'" );
 	TwAddVarRO( menuBar,
 	            "fps",
 	            TW_TYPE_DOUBLE,
@@ -359,15 +403,37 @@ void on_init()
 	            &tessAlpha,
 	            "min=0.0 max='1.0' step='0.01' label='tessellation alpha'" );
 	TwAddVarRW( menuBar,
-	            "fill",
-	            TW_TYPE_BOOLCPP,
-	            &drawPolyFull,
-	            "label='fill polygons' true=ON false=OFF");
-	TwAddVarRW( menuBar,
 	            "line",
 	            TW_TYPE_BOOLCPP,
 	            &drawPolyLines,
 	            "label='wireframe' true=ON false=OFF");
+	TwAddVarRW( menuBar,
+	            "fill",
+	            TW_TYPE_BOOLCPP,
+	            &drawPolyFull,
+	            "label='fill polygons' true=ON false=OFF");
+
+	TwEnumVal modeEV[] = {
+		{SHADING_MODE_DIFFUSE_ONLY, "Diffuse"},
+		{SHADING_MODE_SHADED,       "Shaded" },
+		{SHADING_MODE_NORMALS,      "Normals"}
+	};
+	TwType shadeType= TwDefineEnum("Shading", modeEV, 3);
+	TwAddVarCB(menuBar,
+	           "Shading",
+	           shadeType,
+	           &set_shading_mode_cb,
+	           &get_shading_mode_cb,
+	           &shadingMode,
+	           "help='Change polygon shading mode.' ");
+
+//	TwAddVarCB( menuBar,
+//	            "normals",
+//	            TW_TYPE_BOOLCPP,
+//	            &tess_alpha_set_cb,
+//	            &tess_alpha_get_cb,
+//	            &tessAlpha,
+//	            "min=0.0 max='1.0' step='0.01' label='tessellation alpha'" );
 #endif // _ANT_ENABLE
 
 	fw::check_gl_error();
