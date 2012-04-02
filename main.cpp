@@ -641,10 +641,10 @@ void on_update()
 
 	fw::check_gl_error();
 
-	// restart timer
-	deltaTimer.Start();
 
 	glutSwapBuffers();
+	// restart timer
+	deltaTimer.Start();
 	glutPostRedisplay();
 }
 
